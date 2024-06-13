@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Course;
 use App\Models\Teacher;
 use Couchbase\RegexpSearchQuery;
 use Illuminate\Http\JsonResponse;
@@ -22,8 +23,11 @@ class TeacherController extends Controller
            "phone"=>"required|unique:teachers,phone",
            "address"=>"required",
            "degree"=>"required",
+           "profile_pic"=>"required|file",
            "password"=>"required",
         ]);
+
+        $data["profile_pic"]=$this->media($data["profile_pic"]);
 
         $data["password"]=Hash::make($data["password"]);
 
@@ -55,7 +59,12 @@ class TeacherController extends Controller
             "teacher_id"=>"required",
         ]);
 
-        $teacher = Teacher::where("id",$request->teacher_id)->first();
+        $teacher = Teacher::where("id",$request->teacher_id)->get();
+
+        foreach ($teacher as $item){
+            $course = Teacher::find($item->id)->courses;
+            $item["courses"] = collect($course);
+        }
 
         return $this->success($teacher,true,"Successfully");
     }
@@ -93,6 +102,14 @@ class TeacherController extends Controller
         $teacher = Teacher::where("id",$request->teacher_id)->delete();
 
         return $this->success($teacher,true,"Deleted");
+    }
+
+    public function media($media)
+    {
+        $mediaPath = 'public/assets/media/';
+        $mediaName = $media->getClientOriginalName();
+        $media->move($mediaPath, $mediaName);
+        return $mediaPath . $mediaName;
     }
 
 
